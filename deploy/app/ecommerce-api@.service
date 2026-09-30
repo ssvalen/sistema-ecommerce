@@ -20,6 +20,7 @@ RestartSec=2
 KillSignal=SIGTERM
 TimeoutStopSec=15
 
+UMask=0077
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
@@ -27,10 +28,22 @@ PrivateTmp=true
 PrivateDevices=true
 ProtectKernelTunables=true
 ProtectKernelModules=true
+ProtectKernelLogs=true
 ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=true
 CapabilityBoundingSet=
 LockPersonality=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
+# Sin MemoryDenyWriteExecute: el JIT de V8 necesita memoria escribible y ejecutable.
 
 [Install]
 WantedBy=multi-user.target

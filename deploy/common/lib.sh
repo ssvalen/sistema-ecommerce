@@ -124,3 +124,20 @@ allow_nonlocal_bind() {
 enable_time_sync() {
   timedatectl set-ntp true || true
 }
+
+# Reinicia la API y espera a que /health responda 200 (la base debe estar disponible).
+restart_api_and_wait() {
+  local unit="$1" url="$2"
+  systemctl restart "$unit"
+  for _ in $(seq 1 30); do
+    if curl -fsS "$url" >/dev/null 2>&1; then
+      curl -sS "$url"
+      echo
+      return 0
+    fi
+    sleep 1
+  done
+  curl -sS -w '\nHTTP %{http_code}\n' "$url" || true
+  systemctl --no-pager --lines=20 status "$unit" || true
+  die "La API no respondió 200 en /health tras 30 s"
+}

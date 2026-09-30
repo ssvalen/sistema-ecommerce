@@ -20,6 +20,10 @@ esac
 SELF_IP="$(node_ip "$SELF")"
 PEER_IP="$(node_ip "$PEER")"
 
+# Un primario viejo no vuelve a serlo por reaprovisionarlo: pasa por rebuild-standby.sh.
+[[ "$ROLE" != primary || "$CURRENT_PRIMARY" == "$SELF" ]] ||
+  die "cluster.env dice que el primario es $CURRENT_PRIMARY: $SELF no se instala como primario"
+
 PG_CONF_DIR="/etc/postgresql/$PG_VERSION/main"
 PG_DATA_DIR="/var/lib/postgresql/$PG_VERSION/main"
 PG_UNIT="postgresql@$PG_VERSION-main"

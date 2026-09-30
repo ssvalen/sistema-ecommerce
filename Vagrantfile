@@ -20,16 +20,23 @@ if (ARGV & %w[up provision reload]).any? && !File.exist?(File.join(__dir__, 'dep
   abort 'Falta deploy/secrets.env. Genéralo con: bash deploy/init-secrets.sh'
 end
 
-# En orden: la réplica se inicializa desde data1.
-NODES = [
+# El rol de cada nodo de base sale de CURRENT_PRIMARY (failover.sh lo cambia).
+# El primario va primero: la réplica se inicializa desde él.
+primary = cluster.fetch('CURRENT_PRIMARY')
+db_role = ->(name) { name == primary ? 'primary' : 'standby' }
+DB_NODES = [
   {
     name: 'data1', ip: cluster.fetch('DATA1_IP'), cpus: 2, memory: 2048,
-    provision: [['deploy/db/install-db.sh', ['primary']]]
+    provision: [['deploy/db/install-db.sh', [db_role.call('data1')]]]
   },
   {
     name: 'data2', ip: cluster.fetch('DATA2_IP'), cpus: 1, memory: 2048,
-    provision: [['deploy/db/install-db.sh', ['standby']], ['deploy/cache/install-cache.sh', []]]
-  },
+    provision: [['deploy/db/install-db.sh', [db_role.call('data2')]], ['deploy/cache/install-cache.sh', []]]
+  }
+].sort_by { |node| node[:name] == primary ? 0 : 1 }
+
+NODES = [
+  *DB_NODES,
   {
     name: 'app1', ip: cluster.fetch('APP1_IP'), cpus: 1, memory: 1024,
     provision: [['deploy/app/install-app.sh', ['api-1', '--migrate', '--spa']]]

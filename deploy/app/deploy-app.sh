@@ -67,16 +67,8 @@ if $SPA && [[ -f "$SRC_DIR/frontend/package.json" ]]; then
 fi
 
 log "Reiniciando $UNIT"
-systemctl restart "$UNIT"
-for _ in $(seq 1 30); do
-  if curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
-    curl -sS "$HEALTH_URL"
-    echo
-    log "API lista en $SELF"
-    exit 0
-  fi
-  sleep 1
-done
-curl -sS -w '\nHTTP %{http_code}\n' "$HEALTH_URL" || true
-systemctl --no-pager --lines=20 status "$UNIT" || true
-die "La API no respondió 200 en /health tras 30 s"
+# La unidad también se actualiza en cada release.
+install -m 0644 "$DEPLOY_DIR/app/ecommerce-api@.service" /etc/systemd/system/ecommerce-api@.service
+systemctl daemon-reload
+restart_api_and_wait "$UNIT" "$HEALTH_URL"
+log "API lista en $SELF"
