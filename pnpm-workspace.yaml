@@ -1,0 +1,13 @@
+packages:
+  - backend
+  - frontend
+  - packages/*
+
+# El servicio de la API (ProtectHome) no puede leer un store bajo /root.
+enableGlobalVirtualStore: false
+
+allowBuilds:
+  '@prisma/engines': true
+  prisma: true
+  esbuild: true
+  '@scarf/scarf': false # telemetría

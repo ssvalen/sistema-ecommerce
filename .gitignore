@@ -1,0 +1,18 @@
+node_modules/
+dist/
+*.tsbuildinfo
+backend/src/generated/
+
+# Secretos y entornos locales
+.env
+*.env
+!*.env.example
+!deploy/cluster.env
+
+dev/.runtime/
+.vagrant/
+backend/.uploads/
+
+*.log
+.DS_Store
+Thumbs.db
