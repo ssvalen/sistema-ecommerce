@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# API en app1 o app2 con systemd. Idempotente: recompila y reinicia.
-# Uso (root): install-app.sh api-1|api-2 [--migrate]
+# Prepara app1 o app2 (Node, pnpm, usuario, configuración, systemd, firewall) y publica la API.
+# Idempotente. Uso (root): install-app.sh api-1|api-2 [--migrate]
 
 source "${REPO_DIR:-/vagrant}/deploy/common/lib.sh"
 require_root
@@ -19,7 +19,6 @@ SELF_IP="$(node_ip "$SELF")"
 PRIMARY_IP="$(node_ip "$CURRENT_PRIMARY")"
 
 APP_ROOT=/opt/ecommerce
-SRC_DIR="$APP_ROOT/src"
 UNIT="ecommerce-api@$API_PORT"
 
 log "Paquetes base"
@@ -48,21 +47,8 @@ pnpm --version
 log "Usuario y directorios"
 id ecommerce &>/dev/null ||
   useradd --system --home-dir "$APP_ROOT" --no-create-home --shell /usr/sbin/nologin ecommerce
-install -d -m 0755 "$APP_ROOT" "$SRC_DIR"
+install -d -m 0755 "$APP_ROOT"
 install -d -m 0750 -o root -g ecommerce /etc/ecommerce
-
-log "Copiando el código a $SRC_DIR"
-# Fuera de /vagrant: en la carpeta compartida pnpm es lento y los symlinks fallan.
-rsync -a --delete \
-  --exclude '.git/' --exclude 'node_modules/' --exclude 'dist/' --exclude '.vagrant/' \
-  --exclude 'dev/.runtime/' --exclude 'backend/.env' --exclude 'backend/src/generated/' \
-  --exclude 'deploy/secrets.env' \
-  "$REPO_DIR/" "$SRC_DIR/"
-
-log "Dependencias y compilación"
-cd "$SRC_DIR"
-pnpm install --frozen-lockfile
-pnpm --filter @sistema-e/backend build
 
 log "Configuración (/etc/ecommerce)"
 cat >/etc/ecommerce/ecommerce.env <<EOF
@@ -78,8 +64,7 @@ DB_POOL_MAX=10
 REDIS_URL=redis://ecommerce_app:$REDIS_APP_PASSWORD@$DATA2_IP:6379/0
 JWT_SECRET=$JWT_SECRET
 JWT_EXPIRES_IN=7200
-# true al activar HTTPS en edge (fase 2b).
-COOKIE_SECURE=false
+COOKIE_SECURE=true
 EOF
 chown root:ecommerce /etc/ecommerce/ecommerce.env
 chmod 0640 /etc/ecommerce/ecommerce.env
@@ -92,44 +77,15 @@ EOF
 chown root:root /etc/ecommerce/migrate.env
 chmod 0600 /etc/ecommerce/migrate.env
 
-if [[ "$MIGRATE" == --migrate ]]; then
-  log "Migraciones (prisma migrate deploy)"
-  (
-    load_env_file /etc/ecommerce/migrate.env
-    cd "$SRC_DIR/backend"
-    pnpm exec prisma migrate deploy
-  )
-
-  log "Administrador (pnpm create-admin)"
-  if [[ -n "${ADMIN_EMAIL:-}" ]]; then
-    (
-      load_env_file /etc/ecommerce/ecommerce.env
-      cd "$SRC_DIR/backend"
-      pnpm exec tsx scripts/create-admin.ts
-    )
-  else
-    echo "Sin ADMIN_EMAIL en deploy/secrets.env: se omite."
-  fi
-fi
-
 log "Servicio $UNIT"
 install -m 0644 "$DEPLOY_DIR/app/ecommerce-api@.service" /etc/systemd/system/ecommerce-api@.service
 systemctl daemon-reload
 systemctl enable "$UNIT" >/dev/null
-systemctl restart "$UNIT"
 
 log "Firewall"
 firewall_base
 firewall_allow_from "$EDGE_IP" "$API_PORT"
 firewall_enable
 
-log "Esperando a la API"
-for _ in $(seq 1 30); do
-  if curl -fsS "http://$SELF_IP:$API_PORT/api/v1/health" >/dev/null 2>&1; then
-    break
-  fi
-  sleep 1
-done
-curl -sS -w '\nHTTP %{http_code}\n' "http://$SELF_IP:$API_PORT/api/v1/health" || true
-systemctl --no-pager --lines=5 status "$UNIT" || true
+bash "$DEPLOY_DIR/app/deploy-app.sh" ${MIGRATE:+"$MIGRATE"}
 log "API instalada en $SELF ($INSTANCE_ID)"

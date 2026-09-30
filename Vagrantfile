@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 #
 # Antes del primer `vagrant up` (Git Bash): bash deploy/init-secrets.sh
-# edge (NGINX) se agrega en la fase 2b.
+# Publicar una versión nueva: bash deploy/release.sh
 
 def read_env_file(path)
   File.readlines(path, chomp: true).each_with_object({}) do |line, values|
@@ -37,6 +37,10 @@ NODES = [
   {
     name: 'app2', ip: cluster.fetch('APP2_IP'), cpus: 1, memory: 1024,
     provision: [['deploy/app/install-app.sh', ['api-2']]]
+  },
+  {
+    name: 'edge', ip: cluster.fetch('EDGE_IP'), cpus: 1, memory: 1024,
+    provision: [['deploy/edge/install-edge.sh', []]]
   }
 ].freeze
 

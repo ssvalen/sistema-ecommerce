@@ -11,6 +11,7 @@ backend/src/generated/
 
 dev/.runtime/
 .vagrant/
+.release/
 backend/.uploads/
 
 *.log
