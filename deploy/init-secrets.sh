@@ -22,6 +22,9 @@ DB_REPLICATOR_PASSWORD=$(random_secret)
 REDIS_ADMIN_PASSWORD=$(random_secret)
 REDIS_APP_PASSWORD=$(random_secret)
 JWT_SECRET=$(random_secret)
+ADMIN_NAME=Administrador
+ADMIN_EMAIL=admin@sistema-e.local
+ADMIN_PASSWORD=$(random_secret)
 EOF
 
 echo "Generado deploy/secrets.env"

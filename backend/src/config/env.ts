@@ -13,6 +13,9 @@ const EnvSchema = z.object({
   DB_SSL_MODE: z.enum(['disable', 'require']).default('disable'),
   DB_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
   REDIS_URL: z.url({ protocol: /^rediss?$/ }),
+  JWT_SECRET: z.string().min(32),
+  JWT_EXPIRES_IN: z.coerce.number().int().min(60).max(86_400).default(7_200), // segundos
+  COOKIE_SECURE: z.stringbool().default(true),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

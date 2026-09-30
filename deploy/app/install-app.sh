@@ -11,7 +11,7 @@ MIGRATE="${2:-}"
 
 load_config
 require_vars EDGE_IP DATA2_IP CURRENT_PRIMARY API_PORT DB_NAME NODE_MAJOR PNPM_VERSION \
-  DB_APP_PASSWORD DB_OWNER_PASSWORD REDIS_APP_PASSWORD
+  DB_APP_PASSWORD DB_OWNER_PASSWORD REDIS_APP_PASSWORD JWT_SECRET
 
 SELF="$(hostname -s)"
 [[ "$SELF" == app1 || "$SELF" == app2 ]] || die "install-app.sh corre en app1 o app2 (este nodo es '$SELF')"
@@ -76,6 +76,10 @@ DATABASE_URL=postgresql://ecommerce_app:$DB_APP_PASSWORD@$PRIMARY_IP:5432/$DB_NA
 DB_SSL_MODE=require
 DB_POOL_MAX=10
 REDIS_URL=redis://ecommerce_app:$REDIS_APP_PASSWORD@$DATA2_IP:6379/0
+JWT_SECRET=$JWT_SECRET
+JWT_EXPIRES_IN=7200
+# true al activar HTTPS en edge (fase 2b).
+COOKIE_SECURE=false
 EOF
 chown root:ecommerce /etc/ecommerce/ecommerce.env
 chmod 0640 /etc/ecommerce/ecommerce.env
@@ -95,6 +99,17 @@ if [[ "$MIGRATE" == --migrate ]]; then
     cd "$SRC_DIR/backend"
     pnpm exec prisma migrate deploy
   )
+
+  log "Administrador (pnpm create-admin)"
+  if [[ -n "${ADMIN_EMAIL:-}" ]]; then
+    (
+      load_env_file /etc/ecommerce/ecommerce.env
+      cd "$SRC_DIR/backend"
+      pnpm exec tsx scripts/create-admin.ts
+    )
+  else
+    echo "Sin ADMIN_EMAIL en deploy/secrets.env: se omite."
+  fi
 fi
 
 log "Servicio $UNIT"
