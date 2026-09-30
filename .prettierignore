@@ -5,3 +5,4 @@ backend/src/generated/
 backend/prisma/migrations/
 docs/
 *.md
+.impeccable/

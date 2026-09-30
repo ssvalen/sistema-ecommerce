@@ -32,7 +32,7 @@ NODES = [
   },
   {
     name: 'app1', ip: cluster.fetch('APP1_IP'), cpus: 1, memory: 1024,
-    provision: [['deploy/app/install-app.sh', ['api-1', '--migrate']]]
+    provision: [['deploy/app/install-app.sh', ['api-1', '--migrate', '--spa']]]
   },
   {
     name: 'app2', ip: cluster.fetch('APP2_IP'), cpus: 1, memory: 1024,

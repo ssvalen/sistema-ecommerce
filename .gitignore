@@ -17,3 +17,6 @@ backend/.uploads/
 *.log
 .DS_Store
 Thumbs.db
+
+# Caché del plugin Impeccable
+.impeccable/

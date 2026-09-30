@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Prepara app1 o app2 (Node, pnpm, usuario, configuración, systemd, firewall) y publica la API.
-# Idempotente. Uso (root): install-app.sh api-1|api-2 [--migrate]
+# Idempotente. Uso (root): install-app.sh api-1|api-2 [--migrate] [--spa]
 
 source "${REPO_DIR:-/vagrant}/deploy/common/lib.sh"
 require_root
 
 INSTANCE_ID="${1:-}"
-MIGRATE="${2:-}"
-[[ "$INSTANCE_ID" =~ ^api-[0-9]+$ ]] || die "Uso: install-app.sh api-1|api-2 [--migrate]"
+[[ "$INSTANCE_ID" =~ ^api-[0-9]+$ ]] || die "Uso: install-app.sh api-1|api-2 [--migrate] [--spa]"
+shift
 
 load_config
 require_vars EDGE_IP DATA2_IP CURRENT_PRIMARY API_PORT DB_NAME NODE_MAJOR PNPM_VERSION \
@@ -87,5 +87,5 @@ firewall_base
 firewall_allow_from "$EDGE_IP" "$API_PORT"
 firewall_enable
 
-bash "$DEPLOY_DIR/app/deploy-app.sh" ${MIGRATE:+"$MIGRATE"}
+bash "$DEPLOY_DIR/app/deploy-app.sh" "$@"
 log "API instalada en $SELF ($INSTANCE_ID)"

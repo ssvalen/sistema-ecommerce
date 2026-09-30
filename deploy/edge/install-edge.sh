@@ -36,8 +36,12 @@ ln -sf /etc/nginx/sites-available/ecommerce /etc/nginx/sites-enabled/ecommerce
 rm -f /etc/nginx/sites-enabled/default
 
 install -d -o www-data -g www-data -m 0750 /var/cache/nginx/images
+# La SPA la compila app1 al instalarse.
 install -d -m 0755 "$WEB_ROOT"
-if [[ ! -f "$WEB_ROOT/index.html" ]]; then
+if [[ -f "$REPO_DIR/.release/spa/index.html" ]]; then
+  rsync -a --delete "$REPO_DIR/.release/spa/" "$WEB_ROOT/"
+  chmod -R a+rX "$WEB_ROOT"
+elif [[ ! -f "$WEB_ROOT/index.html" ]]; then
   cat >"$WEB_ROOT/index.html" <<'EOF'
 <!doctype html>
 <html lang="es">

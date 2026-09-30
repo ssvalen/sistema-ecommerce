@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "dev": "pnpm --filter @sistema-e/contracts build && pnpm --parallel --filter @sistema-e/contracts --filter @sistema-e/backend dev",
+    "dev": "pnpm --filter @sistema-e/contracts build && pnpm --parallel --filter @sistema-e/contracts --filter @sistema-e/backend --filter @sistema-e/frontend dev",
     "create-admin": "pnpm --filter @sistema-e/backend create-admin",
     "seed:demo": "pnpm --filter @sistema-e/backend seed:demo"
   },
@@ -20,6 +20,7 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.12.0",
     "prettier": "^3.9.9",
     "typescript": "~6.0.3",

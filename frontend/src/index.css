@@ -1,0 +1,89 @@
+@import 'tailwindcss';
+@import '@fortawesome/fontawesome-svg-core/styles.css';
+
+/* Roles de color (contraste AA). */
+@theme inline {
+  --color-accent: var(--color-cyan-700);
+  --color-accent-soft: var(--color-cyan-50);
+  --color-muted: var(--color-slate-500);
+  --color-danger: var(--color-rose-700);
+}
+
+@theme {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-fade-in: fade-in 150ms var(--ease-out-expo);
+  --animate-pop-in: pop-in 200ms var(--ease-out-expo);
+  --animate-slide-in: slide-in 250ms var(--ease-out-expo);
+  --animate-bump: bump 350ms var(--ease-out-expo);
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
+
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+  }
+
+  @keyframes bump {
+    40% {
+      transform: scale(1.35);
+    }
+  }
+}
+
+@utility panel {
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--color-slate-200);
+  background-color: var(--color-white);
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-blue-600);
+    outline-offset: 2px;
+  }
+
+  [data-surface='dark'] :focus-visible {
+    outline-color: var(--color-white);
+  }
+
+  ::selection {
+    background-color: var(--color-cyan-100);
+    color: var(--color-slate-900);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--color-blue-600);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pop-in,
+  .animate-slide-in {
+    animation-name: fade-in;
+  }
+
+  .animate-bump {
+    animation: none;
+  }
+}

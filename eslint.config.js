@@ -2,10 +2,11 @@ import js from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
-  globalIgnores(['**/node_modules/', '**/dist/', 'backend/src/generated/', 'frontend/']),
+  globalIgnores(['**/node_modules/', '**/dist/', 'backend/src/generated/']),
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
   {
@@ -28,6 +29,11 @@ export default defineConfig(
       ],
       '@typescript-eslint/consistent-type-imports': 'error',
     },
+  },
+  {
+    files: ['frontend/src/**/*.{ts,tsx}'],
+    extends: [reactHooks.configs.flat.recommended],
+    languageOptions: { globals: globals.browser },
   },
   {
     // Fuera de los proyectos TypeScript.

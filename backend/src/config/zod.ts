@@ -1,3 +1,3 @@
-import { useSpanishMessages } from '@sistema-e/contracts';
+import { configureSpanishMessages } from '@sistema-e/contracts';
 
-useSpanishMessages();
+configureSpanishMessages();

@@ -52,7 +52,7 @@ const spanishMessages: z.core.$ZodErrorMap = (issue) => {
 };
 
 // Mensajes de validación en español. Los usan el backend y los formularios del frontend.
-export function useSpanishMessages(): void {
+export function configureSpanishMessages(): void {
   z.config(z.locales.es());
   z.config({ customError: spanishMessages });
 }
