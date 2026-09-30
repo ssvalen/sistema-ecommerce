@@ -1,0 +1,36 @@
+# %i = puerto. Instalado por deploy/app/install-app.sh.
+
+[Unit]
+Description=Sistema E - API (puerto %i)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=ecommerce
+Group=ecommerce
+WorkingDirectory=/opt/ecommerce/src/backend
+EnvironmentFile=/etc/ecommerce/ecommerce.env
+Environment=PORT=%i
+ExecStart=/usr/bin/node dist/server.js
+Restart=always
+RestartSec=2
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
