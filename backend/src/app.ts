@@ -5,10 +5,15 @@ import { env } from './config/env.js';
 import { createDocsRouter } from './docs/docs.router.js';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js';
 import { httpLogger } from './middlewares/http-logger.js';
-import { categoriesRouter, imagesRouter, productsRouter } from './modules/catalog/index.js';
+import { cartRouter } from './modules/cart/cart.routes.js';
+import {
+  categoriesRouter,
+  imagesRouter,
+  productsRouter,
+} from './modules/catalog/catalog.routes.js';
 import { healthRouter } from './modules/health/health.routes.js';
-import { authRouter, usersRouter } from './modules/identity/index.js';
-import { inventoryRouter } from './modules/inventory/index.js';
+import { authRouter, usersRouter } from './modules/identity/identity.routes.js';
+import { inventoryRouter } from './modules/inventory/inventory.routes.js';
 
 function parseTrustProxy(value: string): boolean | number | string {
   if (value === 'true') return true;
@@ -26,6 +31,7 @@ function createApiRouter(): Router {
   api.use('/products', productsRouter);
   api.use('/images', imagesRouter);
   api.use('/inventory', inventoryRouter);
+  api.use('/cart', cartRouter);
   return api;
 }
 
