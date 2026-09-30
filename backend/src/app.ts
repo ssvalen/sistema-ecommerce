@@ -14,6 +14,7 @@ import {
 import { healthRouter } from './modules/health/health.routes.js';
 import { authRouter, usersRouter } from './modules/identity/identity.routes.js';
 import { inventoryRouter } from './modules/inventory/inventory.routes.js';
+import { ordersRouter } from './modules/ordering/orders.routes.js';
 
 function parseTrustProxy(value: string): boolean | number | string {
   if (value === 'true') return true;
@@ -32,6 +33,7 @@ function createApiRouter(): Router {
   api.use('/images', imagesRouter);
   api.use('/inventory', inventoryRouter);
   api.use('/cart', cartRouter);
+  api.use('/orders', ordersRouter);
   return api;
 }
 

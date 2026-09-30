@@ -32,6 +32,27 @@ export const inventoryRepository = {
     return db.product.findFirst({ where: active(productId), select: inventorySelect });
   },
 
+  // Orden fijo por id: dos pagos concurrentes no pueden bloquearse mutuamente.
+  async lockByIds(db: Db, productIds: number[]): Promise<void> {
+    await db.$queryRaw<{ id: number }[]>`
+      SELECT id FROM products WHERE id = ANY(${productIds}::int[]) ORDER BY id FOR UPDATE`;
+  },
+
+  findForSale(db: Db, productIds: number[]) {
+    return db.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, stock: true, deletedAt: true },
+    });
+  },
+
+  recordSale(db: Db, productId: number, quantity: number) {
+    return db.product.update({
+      where: { id: productId },
+      data: { stock: { decrement: quantity }, unitsSold: { increment: quantity } },
+      select: { id: true },
+    });
+  },
+
   // Un solo UPDATE condicional: no pisa una venta concurrente ni deja stock negativo.
   async adjust(db: Db, productId: number, adjustment: number): Promise<boolean> {
     const { count } = await db.product.updateMany({

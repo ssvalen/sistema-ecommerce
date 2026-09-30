@@ -53,4 +53,26 @@ export const cartRepository = {
   deleteByProduct(db: Db, productId: number) {
     return db.cartItem.deleteMany({ where: { productId } });
   },
+
+  // Solo toma el lock: los datos se leen después con Prisma.
+  async lockByUser(db: Db, userId: number): Promise<void> {
+    await db.$queryRaw<{ product_id: number }[]>`
+      SELECT product_id FROM cart_items WHERE user_id = ${userId} ORDER BY product_id FOR UPDATE`;
+  },
+
+  listForCheckout(db: Db, userId: number) {
+    return db.cartItem.findMany({
+      where: { userId },
+      select: {
+        productId: true,
+        quantity: true,
+        product: { select: { name: true, price: true, stock: true, deletedAt: true } },
+      },
+      orderBy: { productId: 'asc' },
+    });
+  },
+
+  deleteItems(db: Db, userId: number, productIds: number[]) {
+    return db.cartItem.deleteMany({ where: { userId, productId: { in: productIds } } });
+  },
 };
