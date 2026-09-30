@@ -71,6 +71,15 @@ function isConnectionRefused(error: unknown): boolean {
   return isRecord(error) && (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT');
 }
 
+// Relanza el error traducido según su tipo, o el original si no hay traducción.
+export function rethrowDbError(
+  error: unknown,
+  translations: Partial<Record<DbErrorKind, Error>>,
+): never {
+  const kind = classifyDbError(error);
+  throw (kind && translations[kind]) || error;
+}
+
 export function classifyDbError(error: unknown): DbErrorKind | undefined {
   if (error instanceof Prisma.PrismaClientInitializationError) return 'unavailable';
 

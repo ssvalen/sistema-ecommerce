@@ -13,7 +13,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "dev": "pnpm --filter @sistema-e/contracts build && pnpm --parallel --filter @sistema-e/contracts --filter @sistema-e/backend dev",
-    "create-admin": "pnpm --filter @sistema-e/backend create-admin"
+    "create-admin": "pnpm --filter @sistema-e/backend create-admin",
+    "seed:demo": "pnpm --filter @sistema-e/backend seed:demo"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

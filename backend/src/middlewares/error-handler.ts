@@ -1,4 +1,5 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
+import multer from 'multer';
 import type { ErrorResponse } from '@sistema-e/contracts';
 import { AppError, NotFoundError } from '../errors/app-error.js';
 import { classifyDbError, type DbErrorKind } from '../errors/db-errors.js';
@@ -49,9 +50,21 @@ function bodyParserReply(error: unknown): ErrorReply | undefined {
   }
 }
 
+function uploadReply(error: multer.MulterError): ErrorReply {
+  if (error.code === 'LIMIT_FILE_SIZE') {
+    return reply(413, 'PAYLOAD_TOO_LARGE', 'La imagen supera el tamaño máximo de 2 MB.');
+  }
+  return reply(
+    400,
+    'INVALID_UPLOAD',
+    'La carga del archivo no es válida: envía un solo archivo en "image".',
+  );
+}
+
 function toReply(error: unknown): ErrorReply {
   if (error instanceof AppError)
     return reply(error.status, error.code, error.message, error.details);
+  if (error instanceof multer.MulterError) return uploadReply(error);
   const parserReply = bodyParserReply(error);
   if (parserReply) return parserReply;
   const dbKind = classifyDbError(error);

@@ -5,8 +5,10 @@ import { env } from './config/env.js';
 import { createDocsRouter } from './docs/docs.router.js';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js';
 import { httpLogger } from './middlewares/http-logger.js';
+import { categoriesRouter, imagesRouter, productsRouter } from './modules/catalog/index.js';
 import { healthRouter } from './modules/health/health.routes.js';
 import { authRouter, usersRouter } from './modules/identity/index.js';
+import { inventoryRouter } from './modules/inventory/index.js';
 
 function parseTrustProxy(value: string): boolean | number | string {
   if (value === 'true') return true;
@@ -20,6 +22,10 @@ function createApiRouter(): Router {
   api.use('/health', healthRouter);
   api.use('/auth', authRouter);
   api.use('/users', usersRouter);
+  api.use('/categories', categoriesRouter);
+  api.use('/products', productsRouter);
+  api.use('/images', imagesRouter);
+  api.use('/inventory', inventoryRouter);
   return api;
 }
 

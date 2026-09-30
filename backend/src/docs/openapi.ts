@@ -11,6 +11,7 @@ const ERROR_DESCRIPTIONS: Record<number, string> = {
   404: 'El recurso no existe',
   409: 'Conflicto con el estado actual de los datos',
   413: 'Cuerpo de la solicitud demasiado grande',
+  415: 'Tipo de contenido no permitido',
   503: 'Servicio no disponible temporalmente',
 };
 
