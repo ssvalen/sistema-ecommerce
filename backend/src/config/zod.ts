@@ -1,3 +1,3 @@
-import { z } from 'zod';
+import { useSpanishMessages } from '@sistema-e/contracts';
 
-z.config(z.locales.es());
+useSpanishMessages();
