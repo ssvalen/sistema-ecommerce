@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { MoneySchema } from './catalog.js';
-import { PaginationQuerySchema } from './common.js';
+import { IdSchema, PaginationQuerySchema } from './common.js';
 
 export const OrderStatusSchema = z.enum(['PENDING_PAYMENT', 'COMPLETED']);
 export type OrderStatus = z.infer<typeof OrderStatusSchema>;
@@ -43,6 +43,11 @@ export const OrderSchema = OrderSummarySchema.extend({
 export type Order = z.infer<typeof OrderSchema>;
 
 export const OrderListQuerySchema = PaginationQuerySchema;
+
+export const CustomerOrderParamsSchema = z.strictObject({
+  id: IdSchema.meta({ description: 'Identificador del usuario' }),
+  orderId: IdSchema.meta({ description: 'Identificador del pedido' }),
+});
 
 export const PaymentBodySchema = z
   .strictObject({

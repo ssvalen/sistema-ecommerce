@@ -1,6 +1,7 @@
 import { faUserSlash } from '@fortawesome/free-solid-svg-icons';
 import { IdSchema } from '@sistema-e/contracts';
 import { useParams } from 'react-router';
+import { CustomerOrders } from '@/modules/ordering';
 import { hasCode } from '@/shared/http/errors';
 import { formatDateTime } from '@/shared/lib/format';
 import { BackLink, Card, EmptyState, ErrorState, PageHeader, Spinner } from '@/shared/ui/feedback';
@@ -63,6 +64,7 @@ export function UserDetailPage() {
           </div>
         </dl>
       </Card>
+      {data.role === 'CUSTOMER' && <CustomerOrders userId={data.id} />}
     </div>
   );
 }

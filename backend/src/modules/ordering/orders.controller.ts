@@ -1,4 +1,9 @@
-import { IdParamsSchema, OrderListQuerySchema, PaymentBodySchema } from '@sistema-e/contracts';
+import {
+  CustomerOrderParamsSchema,
+  IdParamsSchema,
+  OrderListQuerySchema,
+  PaymentBodySchema,
+} from '@sistema-e/contracts';
 import { handler } from '../../http/handler.js';
 import { paginationMeta, sendData, sendPaginated } from '../../http/responses.js';
 import { currentUser } from '../identity/index.js';
@@ -16,6 +21,21 @@ export const listOrders = handler({ query: OrderListQuerySchema }, async ({ quer
 export const getOrder = handler({ params: IdParamsSchema }, async ({ params }, req, res) => {
   sendData(res, await orders.getOrder(currentUser(req).id, params.id));
 });
+
+export const listCustomerOrders = handler(
+  { params: IdParamsSchema, query: OrderListQuerySchema },
+  async ({ params, query }, _req, res) => {
+    const { items, total } = await orders.listCustomerOrders(params.id, query);
+    sendPaginated(res, items, paginationMeta(query.page, query.pageSize, total));
+  },
+);
+
+export const getCustomerOrder = handler(
+  { params: CustomerOrderParamsSchema },
+  async ({ params }, _req, res) => {
+    sendData(res, await orders.getOrder(params.id, params.orderId));
+  },
+);
 
 export const payOrder = handler(
   { params: IdParamsSchema, body: PaymentBodySchema },

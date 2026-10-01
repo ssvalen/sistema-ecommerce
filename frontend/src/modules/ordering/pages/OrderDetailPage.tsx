@@ -1,13 +1,13 @@
 import { faCircleCheck, faReceipt, faStore } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { IdSchema, type Order } from '@sistema-e/contracts';
-import { Link, useParams } from 'react-router';
+import { IdSchema } from '@sistema-e/contracts';
+import { useParams } from 'react-router';
 import { hasCode } from '@/shared/http/errors';
-import { formatDateTime, formatMoney, formatNumber } from '@/shared/lib/format';
+import { formatDateTime, formatMoney } from '@/shared/lib/format';
 import { ButtonLink } from '@/shared/ui/Button';
 import { BackLink, EmptyState, ErrorState, Spinner } from '@/shared/ui/feedback';
-import { ProductImage } from '@/shared/ui/ProductImage';
 import { CheckoutSteps } from '../components/CheckoutSteps';
+import { OrderItemsPanel } from '../components/OrderItemsPanel';
 import { OrderStatusBadge } from '../components/OrderStatusBadge';
 import { PaymentPanel } from '../components/PaymentPanel';
 import { useOrder } from '../hooks';
@@ -20,48 +20,6 @@ function NotFound() {
       message="El pedido no existe o no pertenece a tu cuenta."
       action={<ButtonLink to="/orders">Ver mis pedidos</ButtonLink>}
     />
-  );
-}
-
-function OrderItems({ order }: { order: Order }) {
-  return (
-    <section className="panel lg:col-span-2">
-      <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-        <h2 className="font-bold text-slate-900">Productos del pedido</h2>
-        <span className="text-sm text-muted tabular-nums">
-          {formatNumber(order.itemCount)} {order.itemCount === 1 ? 'artículo' : 'artículos'}
-        </span>
-      </div>
-      <ul className="divide-y divide-slate-100">
-        {order.items.map((item) => (
-          <li key={item.productId} className="flex items-center gap-4 px-6 py-4">
-            <ProductImage
-              src={item.imageUrl}
-              alt=""
-              className="h-16 w-16 shrink-0 rounded-xl border border-slate-100"
-            />
-            <div className="min-w-0 flex-1">
-              <Link
-                to={`/products/${item.productId}`}
-                className="line-clamp-2 font-medium wrap-break-word text-slate-900 hover:text-blue-700"
-              >
-                {item.name}
-              </Link>
-              <p className="text-sm text-muted tabular-nums">
-                {formatNumber(item.quantity)} × {formatMoney(item.unitPrice)}
-              </p>
-            </div>
-            <p className="font-semibold text-slate-900 tabular-nums">
-              {formatMoney(item.subtotal)}
-            </p>
-          </li>
-        ))}
-      </ul>
-      <div className="flex justify-between border-t border-slate-200 px-6 py-4 text-lg font-bold text-slate-900">
-        <span>Total</span>
-        <span className="tabular-nums">{formatMoney(order.total)}</span>
-      </div>
-    </section>
   );
 }
 
@@ -103,7 +61,7 @@ export function OrderDetailPage() {
           </div>
           <div className="grid items-start gap-6 lg:grid-cols-3">
             <PaymentPanel order={data} className="order-first lg:order-last" />
-            <OrderItems order={data} />
+            <OrderItemsPanel order={data} className="lg:col-span-2" />
           </div>
         </>
       ) : (
@@ -135,7 +93,7 @@ export function OrderDetailPage() {
               </ButtonLink>
             </div>
           </section>
-          <OrderItems order={data} />
+          <OrderItemsPanel order={data} />
         </>
       )}
     </div>

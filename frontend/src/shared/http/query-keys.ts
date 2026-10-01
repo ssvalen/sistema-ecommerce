@@ -19,6 +19,10 @@ export const queryKeys = {
     lists: ['orders', 'list'] as const,
     list: (page: number) => ['orders', 'list', page] as const,
     detail: (id: number | null) => ['orders', 'detail', id] as const,
+    customerList: (userId: number, page: number) =>
+      ['orders', 'customer', userId, 'list', page] as const,
+    customerDetail: (userId: number | null, orderId: number | null) =>
+      ['orders', 'customer', userId, 'detail', orderId] as const,
   },
   users: {
     all: ['users'] as const,

@@ -11,7 +11,7 @@ import {
 } from '@/modules/catalog';
 import { LoginPage, RegisterPage, UserDetailPage, UsersAdminPage } from '@/modules/identity';
 import { InventoryAdminPage } from '@/modules/inventory';
-import { OrderDetailPage, OrdersPage } from '@/modules/ordering';
+import { CustomerOrderPage, OrderDetailPage, OrdersPage } from '@/modules/ordering';
 import { ButtonLink } from '@/shared/ui/Button';
 import { EmptyState } from '@/shared/ui/feedback';
 import { Toaster } from '@/shared/ui/Toaster';
@@ -66,6 +66,7 @@ export function App() {
               <Route path="inventory" element={<InventoryAdminPage />} />
               <Route path="users" element={<UsersAdminPage />} />
               <Route path="users/:id" element={<UserDetailPage />} />
+              <Route path="users/:id/orders/:orderId" element={<CustomerOrderPage />} />
             </Route>
           </Route>
         </Routes>

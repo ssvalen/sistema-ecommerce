@@ -4,6 +4,7 @@ import { withTransaction } from '../../db/transaction.js';
 import { ConflictError, NotFoundError, PaymentDeclinedError } from '../../errors/app-error.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { lockCartForCheckout, removeOrderedItems } from '../cart/index.js';
+import { userExists } from '../identity/index.js';
 import { lockProductsForSale, recordSale } from '../inventory/index.js';
 import { toOrder, toOrderSummary } from './order.mapper.js';
 import { ordersRepository } from './orders.repository.js';
@@ -137,6 +138,15 @@ export async function listOrders(
     pageSize,
   );
   return { items: rows.map(toOrderSummary), total };
+}
+
+// Admin: distingue un usuario inexistente de uno sin pedidos.
+export async function listCustomerOrders(
+  userId: number,
+  query: PaginationQuery,
+): Promise<{ items: OrderSummary[]; total: number }> {
+  if (!(await userExists(prisma, userId))) throw new NotFoundError('El usuario no existe.');
+  return listOrders(userId, query);
 }
 
 export async function getOrder(userId: number, orderId: number): Promise<Order> {

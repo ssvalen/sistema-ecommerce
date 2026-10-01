@@ -9,3 +9,9 @@ ordersRouter.post('/', orders.createOrder);
 ordersRouter.get('/', orders.listOrders);
 ordersRouter.get('/:id', orders.getOrder);
 ordersRouter.post('/:id/payment', orders.payOrder);
+
+// Montado en /users/:id/orders.
+export const customerOrdersRouter = Router({ mergeParams: true });
+customerOrdersRouter.use(authenticate, authorize('ADMIN'));
+customerOrdersRouter.get('/', orders.listCustomerOrders);
+customerOrdersRouter.get('/:orderId', orders.getCustomerOrder);

@@ -1,4 +1,5 @@
 import {
+  CustomerOrderParamsSchema,
   dataResponse,
   IdParamsSchema,
   OrderListQuerySchema,
@@ -57,4 +58,28 @@ registry.registerPath({
   security: session,
   request: { params: IdParamsSchema, body: { required: false, content: json(PaymentBodySchema) } },
   responses: { 200: orderResponse, ...errorResponses(400, 401, 402, 403, 404, 409, 503) },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/users/{id}/orders',
+  tags: ['Usuarios (admin)'],
+  summary: 'Pedidos de un usuario',
+  security: session,
+  request: { params: IdParamsSchema, query: OrderListQuerySchema },
+  responses: {
+    200: { description: 'Pedidos', content: json(paginatedResponse(OrderSummarySchema)) },
+    ...errorResponses(400, 401, 403, 404),
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/users/{id}/orders/{orderId}',
+  tags: ['Usuarios (admin)'],
+  summary: 'Detalle de un pedido de un usuario',
+  description: 'Solo lectura.',
+  security: session,
+  request: { params: CustomerOrderParamsSchema },
+  responses: { 200: orderResponse, ...errorResponses(400, 401, 403, 404) },
 });

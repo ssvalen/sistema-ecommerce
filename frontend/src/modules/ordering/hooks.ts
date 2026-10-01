@@ -8,9 +8,10 @@ import {
 } from '@tanstack/react-query';
 import { hasCode } from '@/shared/http/errors';
 import { queryKeys } from '@/shared/http/query-keys';
-import { ordersApi } from './api';
+import { customerOrdersApi, ordersApi } from './api';
 
 export const ORDERS_PAGE_SIZE = 10;
+const CUSTOMER_ORDERS_PAGE_SIZE = 10;
 
 export function useOrders(page: number) {
   return useQuery({
@@ -24,6 +25,25 @@ export function useOrder(id: number | null) {
   return useQuery({
     queryKey: queryKeys.orders.detail(id),
     queryFn: id === null ? skipToken : ({ signal }) => ordersApi.get(id, signal),
+  });
+}
+
+export function useCustomerOrders(userId: number, page: number) {
+  return useQuery({
+    queryKey: queryKeys.orders.customerList(userId, page),
+    queryFn: ({ signal }) =>
+      customerOrdersApi.list(userId, { page, pageSize: CUSTOMER_ORDERS_PAGE_SIZE }, signal),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useCustomerOrder(userId: number | null, orderId: number | null) {
+  return useQuery({
+    queryKey: queryKeys.orders.customerDetail(userId, orderId),
+    queryFn:
+      userId === null || orderId === null
+        ? skipToken
+        : ({ signal }) => customerOrdersApi.get(userId, orderId, signal),
   });
 }
 

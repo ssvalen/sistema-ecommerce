@@ -8,3 +8,10 @@ export const ordersApi = {
   get: (id: number, signal?: AbortSignal) => http.get<Order>(`/orders/${id}`, { signal }),
   pay: (id: number, body: PaymentBody) => http.post<Order>(`/orders/${id}/payment`, body),
 };
+
+export const customerOrdersApi = {
+  list: (userId: number, query: PaginationQuery, signal?: AbortSignal) =>
+    http.page<OrderSummary>(`/users/${userId}/orders`, { query, signal }),
+  get: (userId: number, orderId: number, signal?: AbortSignal) =>
+    http.get<Order>(`/users/${userId}/orders/${orderId}`, { signal }),
+};
