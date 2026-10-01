@@ -26,6 +26,68 @@ const CATEGORIES = [
 ];
 const NOUNS = ['Camisa', 'Zapatilla', 'Lámpara', 'Mochila', 'Reloj', 'Taza', 'Balón', 'Cuaderno'];
 const ADJECTIVES = ['clásica', 'urbana', 'premium', 'compacta', 'deportiva', 'ecológica'];
+const FIRST_NAMES = [
+  'Ana',
+  'Luis',
+  'María',
+  'Carlos',
+  'Sofía',
+  'Jorge',
+  'Lucía',
+  'Diego',
+  'Valeria',
+  'Andrés',
+  'Camila',
+  'Fernando',
+  'Isabel',
+  'Ricardo',
+  'Gabriela',
+  'Pablo',
+  'Daniela',
+  'Héctor',
+  'Paola',
+  'Mario',
+];
+const LAST_NAMES = [
+  'López',
+  'García',
+  'Pérez',
+  'Martínez',
+  'Rodríguez',
+  'Hernández',
+  'González',
+  'Ramírez',
+  'Morales',
+  'Castillo',
+  'Ortiz',
+  'Reyes',
+  'Flores',
+  'Mendoza',
+  'Cruz',
+  'Juárez',
+  'Méndez',
+  'Aguilar',
+  'Herrera',
+  'Estrada',
+];
+// Tres por calificación, de 1 a 5 estrellas.
+const REVIEW_COMMENTS = [
+  'No cumplió lo que esperaba.',
+  'Llegó en mal estado.',
+  'No lo recomiendo.',
+  'La calidad es menor de lo que muestra la foto.',
+  'Funciona, pero tiene detalles.',
+  'Esperaba más por el precio.',
+  'Cumple, sin más.',
+  'Está bien para el precio.',
+  'Correcto, aunque podría mejorar.',
+  'Buena calidad, lo volvería a comprar.',
+  'Muy bueno, llegó rápido.',
+  'Buen producto, cumple lo prometido.',
+  'Excelente, superó mis expectativas.',
+  'Me encantó, totalmente recomendado.',
+  'Perfecto, justo lo que buscaba.',
+];
 
 const products = await prisma.product.count();
 if (products > 0) {
@@ -65,14 +127,17 @@ await prisma.$transaction(
              now()
       FROM generate_series(1, ${PRODUCTS}::int) AS g, words, cats`;
 
+    // Si los clientes de demostración ya existen, solo se actualiza el nombre.
     await tx.$executeRaw`
+      WITH names AS (SELECT ${FIRST_NAMES}::text[] AS given, ${LAST_NAMES}::text[] AS family)
       INSERT INTO users (name, email, password_hash, role, status, created_at, updated_at)
-      SELECT 'Cliente ' || lpad(g::text, 4, '0'),
+      SELECT names.given[1 + g % cardinality(names.given)] || ' '
+               || names.family[1 + (g / cardinality(names.given)) % cardinality(names.family)],
              'cliente' || lpad(g::text, 4, '0') || '@demo.local',
              ${passwordHash}, 'CUSTOMER', 'ACTIVE',
              now() - random() * interval '365 days', now()
-      FROM generate_series(1, ${CUSTOMERS}::int) AS g
-      ON CONFLICT (email) DO NOTHING`;
+      FROM generate_series(1, ${CUSTOMERS}::int) AS g, names
+      ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name`;
 
     // total = 1 provisorio (CHECK total > 0); se calcula al final desde los ítems.
     await tx.$executeRaw`
@@ -119,22 +184,48 @@ await prisma.$transaction(
       UPDATE products p SET units_sold = s.sold
       FROM (SELECT product_id, sum(quantity)::int AS sold FROM order_items GROUP BY product_id) AS s
       WHERE p.id = s.product_id`;
+
+    // Cerca de un tercio de las compras tiene reseña, con más calificaciones altas.
+    await tx.$executeRaw`
+      WITH picked AS (
+        SELECT DISTINCT ON (o.user_id, i.product_id)
+               i.product_id, o.user_id, o.completed_at, random() AS r
+        FROM orders o
+        JOIN order_items i ON i.order_id = o.id
+        WHERE o.id > ${lastOrderId}::int AND o.status = 'COMPLETED' AND random() < 0.35
+        ORDER BY o.user_id, i.product_id, o.completed_at
+      ), rated AS (
+        SELECT product_id, user_id,
+               CASE WHEN r < 0.50 THEN 5 WHEN r < 0.80 THEN 4 WHEN r < 0.90 THEN 3
+                    WHEN r < 0.96 THEN 2 ELSE 1 END AS rating,
+               least(completed_at + random() * interval '20 days', now()) AS at
+        FROM picked
+      )
+      INSERT INTO reviews (product_id, user_id, rating, comment, created_at, updated_at)
+      SELECT product_id, user_id, rating,
+             CASE WHEN random() < 0.7
+                  THEN (${REVIEW_COMMENTS}::text[])[(rating - 1) * 3 + 1 + floor(random() * 3)::int]
+             END,
+             at, at
+      FROM rated
+      ON CONFLICT (user_id, product_id) DO NOTHING`;
   },
   { maxWait: 5_000, timeout: 300_000 },
 );
 
 await invalidateCatalog();
 
-const [categories, total, customers, orders, items] = await Promise.all([
+const [categories, total, customers, orders, items, reviews] = await Promise.all([
   prisma.category.count(),
   prisma.product.count(),
   prisma.user.count({ where: { email: { endsWith: '@demo.local' } } }),
   prisma.order.count(),
   prisma.orderItem.count(),
+  prisma.review.count(),
 ]);
 console.log(
   `Datos de demostración cargados en ${((Date.now() - startedAt) / 1000).toFixed(1)} s:\n` +
-    `  categorías ${categories} · productos ${total} · clientes ${customers} · pedidos ${orders} · ítems ${items}\n` +
+    `  categorías ${categories} · productos ${total} · clientes ${customers} · pedidos ${orders} · ítems ${items} · reseñas ${reviews}\n` +
     `  Contraseña de los clientes de demostración: ${DEMO_PASSWORD}`,
 );
 

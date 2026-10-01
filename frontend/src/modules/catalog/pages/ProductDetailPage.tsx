@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { AddToCartButton } from '@/modules/cart';
 import { useSession } from '@/modules/identity';
+import { CompactRating, ProductReviews, REVIEWS_ANCHOR } from '@/modules/reviews';
 import { hasCode } from '@/shared/http/errors';
 import { cx } from '@/shared/lib/cx';
 import { formatMoney, formatNumber } from '@/shared/lib/format';
@@ -168,6 +169,19 @@ export function ProductDetailPage() {
               <span aria-hidden="true" className="text-slate-300">
                 ·
               </span>
+              {data.rating.average !== null && (
+                <>
+                  <a
+                    href={`#${REVIEWS_ANCHOR}`}
+                    className="text-slate-700 underline-offset-4 hover:underline"
+                  >
+                    <CompactRating rating={data.rating} />
+                  </a>
+                  <span aria-hidden="true" className="text-slate-300">
+                    ·
+                  </span>
+                </>
+              )}
               <UnitsSold units={data.unitsSold} className="font-semibold text-slate-700" />
             </p>
           </div>
@@ -191,6 +205,8 @@ export function ProductDetailPage() {
           )}
         </div>
       </div>
+
+      <ProductReviews key={data.id} productId={data.id} rating={data.rating} />
 
       <ProductStrip
         title={`Más de ${data.category.name}`}

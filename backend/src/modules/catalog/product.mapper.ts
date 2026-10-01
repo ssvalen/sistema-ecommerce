@@ -1,4 +1,4 @@
-import type { Product } from '@sistema-e/contracts';
+import type { Product, RatingSummary } from '@sistema-e/contracts';
 import type { ProductRow } from './products.repository.js';
 
 export function productImageUrl(product: {
@@ -8,7 +8,7 @@ export function productImageUrl(product: {
   return product.image ? `/api/v1/images/${product.image.id}` : product.externalImageUrl;
 }
 
-export function toProductDto(row: ProductRow): Product {
+export function toProductDto(row: ProductRow, rating: RatingSummary): Product {
   return {
     id: row.id,
     name: row.name,
@@ -17,6 +17,7 @@ export function toProductDto(row: ProductRow): Product {
     imageUrl: productImageUrl(row),
     stock: row.stock,
     unitsSold: row.unitsSold,
+    rating,
     category: { id: row.category.id, name: row.category.name },
   };
 }

@@ -130,8 +130,9 @@ export const http = {
   async patch<T>(path: string, json: unknown): Promise<T> {
     return (await request<{ data: T }>(path, { method: 'PATCH', json })).data;
   },
-  async put<T>(path: string, form: FormData): Promise<T> {
-    return (await request<{ data: T }>(path, { method: 'PUT', form })).data;
+  async put<T>(path: string, body: FormData | object): Promise<T> {
+    const content = body instanceof FormData ? { form: body } : { json: body };
+    return (await request<{ data: T }>(path, { method: 'PUT', ...content })).data;
   },
   async delete(path: string): Promise<void> {
     await request<undefined>(path, { method: 'DELETE' });

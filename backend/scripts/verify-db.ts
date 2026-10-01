@@ -152,6 +152,19 @@ await expectKind('pedido COMPLETED sin completed_at (CHECK de estado)', 'check',
   }),
 );
 
+await expectKind('reseña con 6 estrellas (CHECK de rango)', 'check', () =>
+  prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: { name: 'D', email: 'verif-review@example.com', passwordHash: 'x' },
+    });
+    const category = await tx.category.create({ data: { name: 'Verificación reseña' } });
+    const product = await tx.product.create({
+      data: { categoryId: category.id, name: 'Producto', price: '10.00' },
+    });
+    await tx.review.create({ data: { userId: user.id, productId: product.id, rating: 6 } });
+  }),
+);
+
 // $executeRaw: pg_sleep y pg_advisory_xact_lock devuelven void.
 await expectKind('statement_timeout (SET LOCAL 1s + pg_sleep 2s)', 'unavailable', () =>
   prisma.$transaction(async (tx) => {

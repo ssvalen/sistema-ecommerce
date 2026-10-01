@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { IdSchema, PaginationQuerySchema } from './common.js';
+import { RatingSummarySchema } from './reviews.js';
 
 const hasAnyField = (body: Record<string, unknown>) =>
   Object.values(body).some((value) => value !== undefined);
@@ -92,6 +93,7 @@ export const ProductSchema = z
     imageUrl: z.string().nullable(),
     stock: z.number().int(),
     unitsSold: z.number().int(),
+    rating: RatingSummarySchema,
     category: z.object({ id: z.number().int(), name: z.string() }),
   })
   .meta({ id: 'Product' });

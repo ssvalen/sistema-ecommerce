@@ -16,33 +16,57 @@ import { withTransaction } from '../../db/transaction.js';
 import { AppError, NotFoundError } from '../../errors/app-error.js';
 import { rethrowDbError } from '../../errors/db-errors.js';
 import { removeProductFromCarts } from '../cart/index.js';
+import { NO_RATINGS, ratingSummaries } from '../reviews/index.js';
 import { imagesRepository } from './images.repository.js';
 import { toProductDto } from './product.mapper.js';
-import { productsRepository } from './products.repository.js';
+import { productsRepository, type ProductRow } from './products.repository.js';
 
-// Las compras no invalidan: el listado puede mostrar stock con hasta 60 s de atraso.
+// Compras y reseñas no invalidan: el listado puede mostrar stock y calificación con hasta 60 s de atraso.
 const PRODUCT_LIST_TTL_SECONDS = 60;
+// Sube cuando cambia la forma de Product: en un release, la instancia vieja no comparte entradas.
+const PRODUCT_LIST_CACHE = 'products:v2';
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 const productNotFound = () => new NotFoundError('El producto no existe.');
 const categoryNotFound = () =>
   new AppError(400, 'CATEGORY_NOT_FOUND', 'La categoría indicada no existe.');
 
+async function toProducts(rows: ProductRow[]): Promise<Product[]> {
+  const ratings = await ratingSummaries(
+    prisma,
+    rows.map((row) => row.id),
+  );
+  return rows.map((row) => toProductDto(row, ratings.get(row.id) ?? NO_RATINGS));
+}
+
+async function toProduct(row: ProductRow): Promise<Product> {
+  const ratings = await ratingSummaries(prisma, [row.id]);
+  return toProductDto(row, ratings.get(row.id) ?? NO_RATINGS);
+}
+
 export function listProducts(
   query: ProductListQuery,
 ): Promise<{ value: { items: Product[]; total: number }; cache: CacheStatus }> {
   const { q, categoryId, minPrice, maxPrice, sort, page, pageSize } = query;
-  const key = cacheKey('products', [q, categoryId, minPrice, maxPrice, sort, page, pageSize]);
+  const key = cacheKey(PRODUCT_LIST_CACHE, [
+    q,
+    categoryId,
+    minPrice,
+    maxPrice,
+    sort,
+    page,
+    pageSize,
+  ]);
   return cached(key, PRODUCT_LIST_TTL_SECONDS, async () => {
     const { rows, total } = await productsRepository.list(prisma, query);
-    return { items: rows.map(toProductDto), total };
+    return { items: await toProducts(rows), total };
   });
 }
 
 export async function getProduct(id: number): Promise<Product> {
   const row = await productsRepository.findActiveById(prisma, id);
   if (!row) throw productNotFound();
-  return toProductDto(row);
+  return toProduct(row);
 }
 
 export async function createProduct(body: ProductCreateBody): Promise<Product> {
@@ -57,7 +81,7 @@ export async function createProduct(body: ProductCreateBody): Promise<Product> {
     })
     .catch((error: unknown) => rethrowDbError(error, { foreignKey: categoryNotFound() }));
   await invalidateCatalog();
-  return toProductDto(row);
+  return toProductDto(row, NO_RATINGS);
 }
 
 export async function updateProduct(id: number, body: ProductUpdateBody): Promise<Product> {
@@ -75,7 +99,7 @@ export async function updateProduct(id: number, body: ProductUpdateBody): Promis
     rethrowDbError(error, { notFound: productNotFound(), foreignKey: categoryNotFound() }),
   );
   await invalidateCatalog();
-  return toProductDto(row);
+  return toProduct(row);
 }
 
 export async function deleteProduct(id: number): Promise<void> {
@@ -102,7 +126,7 @@ export async function setProductImage(id: number, file: Buffer): Promise<Product
     return productsRepository.update(tx, id, { externalImageUrl: null });
   });
   await invalidateCatalog();
-  return toProductDto(row);
+  return toProduct(row);
 }
 
 export async function getImage(id: number): Promise<{ contentType: string; data: Uint8Array }> {

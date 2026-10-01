@@ -6,3 +6,4 @@ export * from './identity.js';
 export * from './inventory.js';
 export * from './messages.js';
 export * from './ordering.js';
+export * from './reviews.js';

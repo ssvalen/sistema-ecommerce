@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { Product } from '@sistema-e/contracts';
 import { Link } from 'react-router';
 import { AddToCartButton } from '@/modules/cart';
+import { CompactRating } from '@/modules/reviews';
 import { formatMoney, formatNumber } from '@/shared/lib/format';
 import { LOW_STOCK } from '@/shared/lib/stock';
 import { Skeleton } from '@/shared/ui/feedback';
@@ -52,7 +53,10 @@ export function ProductCard({ product, rank }: ProductCardProps) {
             {product.name}
           </h3>
         </Link>
-        <p className="mt-1 text-xs text-muted">{product.category.name}</p>
+        <div className="mt-1 flex items-center justify-between gap-2 text-xs">
+          <p className="truncate text-muted">{product.category.name}</p>
+          <CompactRating rating={product.rating} className="shrink-0 text-slate-700" />
+        </div>
         <div className="mt-auto flex items-end justify-between gap-2 pt-3">
           <p className="text-lg font-bold text-slate-900 tabular-nums">
             {formatMoney(product.price)}

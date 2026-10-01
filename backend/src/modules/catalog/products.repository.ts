@@ -55,6 +55,10 @@ export const productsRepository = {
     return db.product.findFirst({ where: { id, deletedAt: null }, select: productSelect });
   },
 
+  async isActive(db: Db, id: number): Promise<boolean> {
+    return (await db.product.count({ where: { id, deletedAt: null } })) === 1;
+  },
+
   create(db: Db, data: Prisma.ProductUncheckedCreateInput): Promise<ProductRow> {
     return db.product.create({ data, select: productSelect });
   },

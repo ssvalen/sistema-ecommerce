@@ -99,4 +99,12 @@ export const ordersRepository = {
   findOwned(db: Db, orderId: number, userId: number): Promise<OrderDetailRow | null> {
     return db.order.findFirst({ where: { id: orderId, userId }, select: detailSelect });
   },
+
+  async hasCompletedPurchase(db: Db, userId: number, productId: number): Promise<boolean> {
+    const item = await db.orderItem.findFirst({
+      where: { productId, order: { userId, status: 'COMPLETED' } },
+      select: { orderId: true },
+    });
+    return item !== null;
+  },
 };
