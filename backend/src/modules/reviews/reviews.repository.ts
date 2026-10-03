@@ -43,7 +43,7 @@ export const reviewsRepository = {
     });
   },
 
-  // Un solo INSERT ... ON CONFLICT: dos envíos simultáneos no chocan. xmax = 0 si la fila es nueva.
+  // xmax = 0: la fila se insertó; si no, se actualizó.
   async upsert(
     db: Db,
     data: { userId: number; productId: number; rating: number; comment: string | null },

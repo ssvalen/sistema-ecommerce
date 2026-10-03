@@ -5,7 +5,6 @@ import { reviewsRepository } from './reviews.repository.js';
 
 export { NO_RATINGS } from './review.mapper.js';
 
-// Promedio y cantidad por producto, calculados en cada consulta.
 export async function ratingSummaries(
   db: Db,
   productIds: number[],

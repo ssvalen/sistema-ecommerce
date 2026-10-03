@@ -14,7 +14,7 @@ import { Stars } from './Stars';
 
 const TITLE = 'font-semibold text-slate-900';
 
-// Cliente: escribir, editar o eliminar su reseña. El admin modera desde la lista.
+// El admin modera desde ReviewList.
 export function MyReviewPanel({ productId }: { productId: number }) {
   const { user } = useSession();
   const location = useLocation();

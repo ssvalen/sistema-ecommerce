@@ -8,7 +8,6 @@ import { OrderItemsPanel } from '../components/OrderItemsPanel';
 import { OrderStatusBadge } from '../components/OrderStatusBadge';
 import { useCustomerOrder } from '../hooks';
 
-// Admin: pedido de un cliente, solo lectura.
 export function CustomerOrderPage() {
   const params = useParams();
   const userId = IdSchema.safeParse(params.id);

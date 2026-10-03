@@ -127,7 +127,6 @@ await prisma.$transaction(
              now()
       FROM generate_series(1, ${PRODUCTS}::int) AS g, words, cats`;
 
-    // Si los clientes de demostración ya existen, solo se actualiza el nombre.
     await tx.$executeRaw`
       WITH names AS (SELECT ${FIRST_NAMES}::text[] AS given, ${LAST_NAMES}::text[] AS family)
       INSERT INTO users (name, email, password_hash, role, status, created_at, updated_at)

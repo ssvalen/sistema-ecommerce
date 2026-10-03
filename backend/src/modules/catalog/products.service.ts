@@ -23,7 +23,7 @@ import { productsRepository, type ProductRow } from './products.repository.js';
 
 // Compras y reseñas no invalidan: el listado puede mostrar stock y calificación con hasta 60 s de atraso.
 const PRODUCT_LIST_TTL_SECONDS = 60;
-// Sube cuando cambia la forma de Product: en un release, la instancia vieja no comparte entradas.
+// Cambiar si cambia la forma de Product.
 const PRODUCT_LIST_CACHE = 'products:v2';
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
