@@ -1,31 +1,49 @@
-// Datos de demostración con volumen. Solo corre si no hay productos.
-// Uso: pnpm seed:demo
+// Datos de demostración: catálogo de DummyJSON con sus fotos, clientes, pedidos y reseñas.
+// Solo corre si no hay productos y necesita salida a internet. Uso: pnpm seed:demo
+import { fileTypeFromBuffer } from 'file-type';
+import { z } from 'zod';
 import { invalidateCatalog } from '../src/cache/catalog-cache.js';
 import { redis } from '../src/cache/redis.js';
 import { prisma } from '../src/db/prisma.js';
 import { hashPassword } from '../src/modules/identity/password.js';
 
-const PRODUCTS = 50_000;
-const CUSTOMERS = 2_000;
-const ORDERS = 20_000;
+const CATALOG_URL =
+  'https://dummyjson.com/products?limit=0&select=title,description,category,price,stock,images,thumbnail';
+const CUSTOMERS = 200;
+const ORDERS = 2_000;
 const DEMO_PASSWORD = 'demo-cliente-123';
+const USD_TO_GTQ = 7.75;
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const DOWNLOAD_CONCURRENCY = 8;
+const DOWNLOAD_TIMEOUT_MS = 15_000;
 
-const CATEGORIES = [
-  'Calzado',
-  'Ropa',
-  'Accesorios',
-  'Electrónica',
-  'Hogar',
-  'Cocina',
-  'Deportes',
-  'Juguetes',
-  'Libros',
-  'Belleza',
-  'Jardín',
-  'Oficina',
-];
-const NOUNS = ['Camisa', 'Zapatilla', 'Lámpara', 'Mochila', 'Reloj', 'Taza', 'Balón', 'Cuaderno'];
-const ADJECTIVES = ['clásica', 'urbana', 'premium', 'compacta', 'deportiva', 'ecológica'];
+const CATEGORY_NAMES: Record<string, string> = {
+  beauty: 'Belleza',
+  fragrances: 'Fragancias',
+  furniture: 'Muebles',
+  groceries: 'Abarrotes',
+  'home-decoration': 'Decoración',
+  'kitchen-accessories': 'Cocina',
+  laptops: 'Laptops',
+  'mens-shirts': 'Camisas de hombre',
+  'mens-shoes': 'Calzado de hombre',
+  'mens-watches': 'Relojes de hombre',
+  'mobile-accessories': 'Accesorios para celular',
+  motorcycle: 'Motocicletas',
+  'skin-care': 'Cuidado de la piel',
+  smartphones: 'Celulares',
+  'sports-accessories': 'Deportes',
+  sunglasses: 'Lentes de sol',
+  tablets: 'Tablets',
+  tops: 'Blusas',
+  vehicle: 'Vehículos',
+  'womens-bags': 'Bolsos',
+  'womens-dresses': 'Vestidos',
+  'womens-jewellery': 'Joyería',
+  'womens-shoes': 'Calzado de mujer',
+  'womens-watches': 'Relojes de mujer',
+};
 const FIRST_NAMES = [
   'Ana',
   'Luis',
@@ -89,16 +107,96 @@ const REVIEW_COMMENTS = [
   'Perfecto, justo lo que buscaba.',
 ];
 
-const products = await prisma.product.count();
-if (products > 0) {
-  console.error(
-    `La base ya tiene ${products} productos: seed:demo solo corre sobre un catálogo vacío.`,
-  );
+const CatalogSchema = z.object({
+  products: z.array(
+    z.object({
+      title: z.string().trim().min(1),
+      description: z.string(),
+      category: z.string().min(1),
+      price: z.number().positive(),
+      stock: z.number().int().nonnegative(),
+      images: z.array(z.url()),
+      thumbnail: z.url(),
+    }),
+  ),
+});
+type CatalogItem = z.infer<typeof CatalogSchema>['products'][number];
+
+interface Image {
+  contentType: string;
+  data: Uint8Array<ArrayBuffer>;
+}
+
+function fail(message: string): never {
+  console.error(message);
   process.exit(1);
 }
 
-const passwordHash = await hashPassword(DEMO_PASSWORD);
+const categoryName = (slug: string) =>
+  CATEGORY_NAMES[slug] ?? slug.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase());
+
+// Mismas reglas que una imagen subida desde el admin.
+async function downloadImage(url: string): Promise<Image | null> {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
+    if (!response.ok) return null;
+    const data = new Uint8Array(await response.arrayBuffer());
+    if (data.byteLength === 0 || data.byteLength > MAX_IMAGE_BYTES) return null;
+    const type = await fileTypeFromBuffer(data);
+    return type && IMAGE_TYPES.has(type.mime) ? { contentType: type.mime, data } : null;
+  } catch {
+    return null;
+  }
+}
+
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>) {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    for (let index = next++; index < items.length; index = next++) {
+      results[index] = await fn(items[index] as T);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+// Las ventas se concentran en los primeros ids: mezclar reparte el ranking entre categorías.
+function shuffle<T>(items: T[]): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j] as T, copy[i] as T];
+  }
+  return copy;
+}
+
+const existing = await prisma.product.count();
+if (existing > 0) {
+  fail(`La base ya tiene ${existing} productos: seed:demo solo corre sobre un catálogo vacío.`);
+}
+
 const startedAt = Date.now();
+
+console.log('Descargando el catálogo de demostración...');
+let catalog: CatalogItem[];
+try {
+  const response = await fetch(CATALOG_URL, { signal: AbortSignal.timeout(30_000) });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  catalog = shuffle(CatalogSchema.parse(await response.json()).products);
+} catch (error) {
+  fail(
+    `No se pudo descargar el catálogo de ${new URL(CATALOG_URL).origin} (${String(error)}). ` +
+      'seed:demo necesita salida a internet.',
+  );
+}
+
+console.log(`Descargando ${catalog.length} imágenes...`);
+const images = await mapLimit(catalog, DOWNLOAD_CONCURRENCY, (item) =>
+  downloadImage(item.images[0] ?? item.thumbnail),
+);
+
+const passwordHash = await hashPassword(DEMO_PASSWORD);
 
 await prisma.$transaction(
   async (tx) => {
@@ -107,25 +205,42 @@ await prisma.$transaction(
     const [{ lastOrderId } = { lastOrderId: 0 }] = await tx.$queryRaw<{ lastOrderId: number }[]>`
       SELECT coalesce(max(id), 0)::int AS "lastOrderId" FROM orders`;
 
-    await tx.$executeRaw`
-      INSERT INTO categories (name, description)
-      SELECT name, 'Categoría de demostración'
-      FROM unnest(${CATEGORIES}::text[]) AS name
-      ON CONFLICT (name) DO NOTHING`;
+    const names = [...new Set(catalog.map((item) => categoryName(item.category)))];
+    await tx.category.createMany({
+      data: names.map((name) => ({ name, description: 'Categoría de demostración' })),
+      skipDuplicates: true,
+    });
+    const categories = await tx.category.findMany({
+      where: { name: { in: names } },
+      select: { id: true, name: true },
+    });
+    const categoryIds = new Map(categories.map((c) => [c.name.toLowerCase(), c.id]));
 
-    await tx.$executeRaw`
-      WITH words AS (SELECT ${NOUNS}::text[] AS noun, ${ADJECTIVES}::text[] AS adj),
-           cats AS (SELECT array_agg(id ORDER BY id) AS ids FROM categories)
-      INSERT INTO products (category_id, name, description, price, stock, created_at, updated_at)
-      SELECT cats.ids[1 + floor(random() * cardinality(cats.ids))::int],
-             words.noun[1 + g % cardinality(words.noun)] || ' '
-               || words.adj[1 + (g / cardinality(words.noun)) % cardinality(words.adj)] || ' ' || g,
-             'Producto de demostración número ' || g || '.',
-             round((5 + random() * 1995)::numeric, 2),
-             floor(random() * 500)::int,
-             now() - random() * interval '365 days',
-             now()
-      FROM generate_series(1, ${PRODUCTS}::int) AS g, words, cats`;
+    for (const [index, item] of catalog.entries()) {
+      const image = images[index];
+      const categoryId = categoryIds.get(categoryName(item.category).toLowerCase());
+      if (categoryId === undefined) throw new Error(`Sin categoría para ${item.category}`);
+      await tx.product.create({
+        data: {
+          categoryId,
+          name: item.title.slice(0, 150),
+          description: item.description.trim().slice(0, 5000),
+          price: Math.max(1, Math.round(item.price * USD_TO_GTQ)).toFixed(2),
+          stock: item.stock,
+          createdAt: new Date(Date.now() - Math.random() * 365 * 86_400_000),
+          image: image
+            ? {
+                create: {
+                  contentType: image.contentType,
+                  byteSize: image.data.byteLength,
+                  data: image.data,
+                },
+              }
+            : undefined,
+        },
+        select: { id: true },
+      });
+    }
 
     await tx.$executeRaw`
       WITH names AS (SELECT ${FIRST_NAMES}::text[] AS given, ${LAST_NAMES}::text[] AS family)
@@ -214,9 +329,10 @@ await prisma.$transaction(
 
 await invalidateCatalog();
 
-const [categories, total, customers, orders, items, reviews] = await Promise.all([
+const [categories, total, withImage, customers, orders, items, reviews] = await Promise.all([
   prisma.category.count(),
   prisma.product.count(),
+  prisma.productImage.count(),
   prisma.user.count({ where: { email: { endsWith: '@demo.local' } } }),
   prisma.order.count(),
   prisma.orderItem.count(),
@@ -224,7 +340,8 @@ const [categories, total, customers, orders, items, reviews] = await Promise.all
 ]);
 console.log(
   `Datos de demostración cargados en ${((Date.now() - startedAt) / 1000).toFixed(1)} s:\n` +
-    `  categorías ${categories} · productos ${total} · clientes ${customers} · pedidos ${orders} · ítems ${items} · reseñas ${reviews}\n` +
+    `  categorías ${categories} · productos ${total} (${withImage} con imagen) · clientes ${customers}\n` +
+    `  pedidos ${orders} · ítems ${items} · reseñas ${reviews}\n` +
     `  Contraseña de los clientes de demostración: ${DEMO_PASSWORD}`,
 );
 
