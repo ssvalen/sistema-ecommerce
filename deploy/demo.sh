@@ -10,6 +10,7 @@ API="$BASE_URL/api/v1"
 UNIT=ecommerce-api@3000
 
 WORK="$(mktemp -d)"
+if command -v cygpath >/dev/null; then WORK="$(cygpath -m "$WORK")"; fi
 trap 'rm -rf "$WORK"' EXIT
 ADMIN_JAR="$WORK/admin.jar"
 CUSTOMER_JAR="$WORK/customer.jar"
