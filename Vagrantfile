@@ -26,11 +26,11 @@ primary = cluster.fetch('CURRENT_PRIMARY')
 db_role = ->(name) { name == primary ? 'primary' : 'standby' }
 DB_NODES = [
   {
-    name: 'data1', ip: cluster.fetch('DATA1_IP'), cpus: 2, memory: 2048,
+    name: 'data1', ip: cluster.fetch('DATA1_IP'), cpus: 1, memory: 1024,
     provision: [['deploy/db/install-db.sh', [db_role.call('data1')]]]
   },
   {
-    name: 'data2', ip: cluster.fetch('DATA2_IP'), cpus: 1, memory: 2048,
+    name: 'data2', ip: cluster.fetch('DATA2_IP'), cpus: 1, memory: 1024,
     provision: [['deploy/db/install-db.sh', [db_role.call('data2')]], ['deploy/cache/install-cache.sh', []]]
   }
 ].sort_by { |node| node[:name] == primary ? 0 : 1 }
@@ -42,11 +42,11 @@ NODES = [
     provision: [['deploy/app/install-app.sh', ['api-1', '--migrate', '--spa']]]
   },
   {
-    name: 'app2', ip: cluster.fetch('APP2_IP'), cpus: 1, memory: 1024,
+    name: 'app2', ip: cluster.fetch('APP2_IP'), cpus: 1, memory: 768,
     provision: [['deploy/app/install-app.sh', ['api-2']]]
   },
   {
-    name: 'edge', ip: cluster.fetch('EDGE_IP'), cpus: 1, memory: 1024,
+    name: 'edge', ip: cluster.fetch('EDGE_IP'), cpus: 1, memory: 512,
     provision: [['deploy/edge/install-edge.sh', []]]
   }
 ].freeze
@@ -54,6 +54,7 @@ NODES = [
 Vagrant.configure('2') do |config|
   config.vm.box = 'bento/ubuntu-24.04'
   config.vm.box_check_update = false
+  config.vm.boot_timeout = 600
   config.vm.synced_folder '.', '/vagrant'
 
   NODES.each do |node|
