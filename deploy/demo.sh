@@ -70,7 +70,7 @@ primary() { cluster_get CURRENT_PRIMARY; }
 db() {
   local node="$1"
   shift
-  on_vm "$node" db/db-node.sh "$@" | tail -n 1
+  on_vm "$node" db/db-node.sh "$@" | { grep -Eo '^[0-9]+$' || true; } | tail -n 1
 }
 
 health_line() {
@@ -185,13 +185,13 @@ scenario_2() {
 
 scenario_3() {
   step "3. Reinicio automático"
-  local pid
-  pid="$(on_vm_raw app1 "systemctl show -p MainPID --value $UNIT")"
-  info "kill -9 al proceso de la API en app1 (PID $pid):"
-  on_vm_raw app1 "sudo kill -9 $pid"
+  info "Proceso de la API en app1:"
+  on_vm_raw app1 "systemctl show -p MainPID -p NRestarts $UNIT" | sed 's/^/    /'
+  info "kill -9 (SIGKILL) al proceso de la API en app1:"
+  on_vm_raw app1 "sudo systemctl kill --kill-whom=main --signal=SIGKILL $UNIT"
   health_burst 4
   sleep 3
-  info "systemd la reinició:"
+  info "systemd la reinició (MainPID nuevo, NRestarts + 1):"
   on_vm_raw app1 "systemctl show -p MainPID -p NRestarts $UNIT" | sed 's/^/    /'
   wait_both_instances
 }
@@ -208,15 +208,13 @@ scenario_4() {
 
 scenario_5() {
   step "5. Instancia colgada"
-  local pid
-  pid="$(on_vm_raw app1 "systemctl show -p MainPID --value $UNIT")"
-  info "kill -STOP al proceso de la API en app1 (PID $pid)."
-  on_vm_raw app1 "sudo kill -STOP $pid"
+  info "kill -STOP al proceso de la API en app1: sigue vivo, pero no responde."
+  on_vm_raw app1 "sudo systemctl kill --kill-whom=main --signal=SIGSTOP $UNIT"
   info "Lo que va a app1 espera proxy_read_timeout (10 s) y NGINX lo reintenta en api-2:"
   health_burst 4
   info "Tras 2 fallas, NGINX saca a app1 del reparto por 10 s (fail_timeout):"
   health_burst 4
-  on_vm_raw app1 "sudo kill -CONT $pid"
+  on_vm_raw app1 "sudo systemctl kill --kill-whom=main --signal=SIGCONT $UNIT"
   info "kill -CONT: app1 vuelve."
   wait_both_instances
 }

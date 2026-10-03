@@ -39,15 +39,19 @@ vm_running() {
   [[ "$(vagrant status "$1" --machine-readable 2>/dev/null | tr -d '\r')" == *",state,running"* ]]
 }
 
+clean_output() {
+  tr -d '\r' | sed -E 's|\x1b\[[0-9;?<>=]*[ -/]*[@-~]||g; s|\x1b\][^\x07]*\x07||g; s|\x1b[=>]||g'
+}
+
 # Ejecuta un script de deploy/ como root en la VM.
 on_vm() {
   local vm="$1"
   shift
-  vagrant ssh "$vm" --no-tty -c "sudo bash /vagrant/deploy/$*" | tr -d '\r'
+  vagrant ssh "$vm" --no-tty -c "sudo bash /vagrant/deploy/$*" | clean_output
 }
 
 on_vm_raw() {
-  vagrant ssh "$1" --no-tty -c "$2" | tr -d '\r'
+  vagrant ssh "$1" --no-tty -c "$2" | clean_output
 }
 
 confirm() {
